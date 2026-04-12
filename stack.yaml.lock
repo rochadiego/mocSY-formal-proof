@@ -12,41 +12,6 @@ packages:
   original:
     hackage: forsyde-shallow-3.5.0.0
 - completed:
-    hackage: liquidhaskell-0.9.12.2@sha256:f38b2f3aa25edc85e3f06f66b2c237a510471fcffd588319927d94b2b02c01a7,3457
-    pantry-tree:
-      sha256: 03c822c66364bbff898321b534404d5a0d3ba6dc01175987c51dafc116089e11
-      size: 3366
-  original:
-    hackage: liquidhaskell-0.9.12.2
-- completed:
-    hackage: liquidhaskell-boot-0.9.12.2@sha256:46e6a3d6c46b29d3c110184b67a4e2cb7da30a28f944fe1bcd01a7c926f0dc57,10484
-    pantry-tree:
-      sha256: 1ee8e7b4cacadcb5686b000bf2300e96ef82353692ce22c670d60ce61ad349f7
-      size: 7991
-  original:
-    hackage: liquidhaskell-boot-0.9.12.2
-- completed:
-    hackage: liquid-fixpoint-0.9.6.3.3@sha256:0587a0a22811525e8cb787052115bd7163278d1b069269a65b8de58233587d90,9568
-    pantry-tree:
-      sha256: e8ea016841d7c2ed7fd987310765ea8089012909e06545ed1639a724a92de5c3
-      size: 16606
-  original:
-    hackage: liquid-fixpoint-0.9.6.3.3
-- completed:
-    hackage: smtlib-backends-0.4@sha256:a662fecbc8908337b8f19d9bb7e1515a29f4dd992a5eb88f1fcb59e6ab1d0871,1258
-    pantry-tree:
-      sha256: f46a0eb3dd5f894fe644bca55cdef65f16cfe5bc1d92c739b90eebd63d440835
-      size: 275
-  original:
-    hackage: smtlib-backends-0.4
-- completed:
-    hackage: smtlib-backends-process-0.3@sha256:1cdd2ae8ebf3786f08cafe2f6b47001f7647779ad87cba3f05250f68d70e3f07,1676
-    pantry-tree:
-      sha256: 05326db88add261e687f039a81b8573a4192b42e47e994230e516b3c604af3e8
-      size: 461
-  original:
-    hackage: smtlib-backends-process-0.3
-- completed:
     commit: dc011cd737f98b8a67f6051560d9fce553385905
     git: https://github.com/nick8325/quickspec.git
     name: quickspec

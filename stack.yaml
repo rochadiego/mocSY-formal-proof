@@ -7,13 +7,6 @@ extra-deps:
 # ForSyDe
 - forsyde-shallow-3.5.0.0
 
-# LiquidHaskell
-- liquidhaskell-0.9.12.2
-- liquidhaskell-boot-0.9.12.2
-- liquid-fixpoint-0.9.6.3.3
-- smtlib-backends-0.4
-- smtlib-backends-process-0.3
-
 # QuickSpec
 - git: https://github.com/nick8325/quickspec.git
   commit: dc011cd737f98b8a67f6051560d9fce553385905
