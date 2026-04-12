@@ -11,20 +11,16 @@ common common-options
   default-language: GHC2024
   ghc-options:
     -Wall
-    -fplugin=LiquidHaskell
-    -fplugin-opt=LiquidHaskell:--no-termination 
 
 library
   import: common-options
   hs-source-dirs: src
   exposed-modules:
-      Models.PIDController
+      Models.System
       Verification.Properties
-      Verification.Refinements
       Discovery.Signatures
   build-depends:
       base
-    , liquidhaskell
     , quickspec
     , forsyde-shallow           >= 3.5
     , QuickCheck                >= 2.14
@@ -37,7 +33,6 @@ executable system-simulation
   build-depends:
       base
     , mocSY-formal-proof
-    , liquidhaskell
     , forsyde-shallow
 
 executable properties-discovery
@@ -48,7 +43,6 @@ executable properties-discovery
   build-depends:
       base
     , mocSY-formal-proof
-    , liquidhaskell
     , quickspec
 
 test-suite properties-validation
@@ -60,5 +54,4 @@ test-suite properties-validation
   build-depends:
       base
     , mocSY-formal-proof
-    , liquidhaskell
     , QuickCheck

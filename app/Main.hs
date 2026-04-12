@@ -3,7 +3,7 @@
 module Main where
 
 import ForSyDe.Shallow (signal, fromSignal)
-import Models.PIDController (mySystem)
+import Models.System (incrementedRunningSum)
 
 main :: IO ()
 main = do
@@ -14,7 +14,7 @@ main = do
     let inputValues = [1, 2, 3, 4, 5, 5, 5, 4, 3, 2] :: [Int]
     let inputSignal = signal inputValues
 
-    let outputSignal = mySystem inputSignal
+    let outputSignal = incrementedRunningSum inputSignal
 
     putStrLn $ "Input: " ++ show inputValues
     putStrLn "-------------------------------------------"

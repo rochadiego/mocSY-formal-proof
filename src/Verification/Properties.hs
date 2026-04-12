@@ -3,13 +3,12 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Verification.Properties
-  ( prop_incCheck,
-    prop_equivalence,
+  ( prop_incrementedRunningSum
   )
 where
 
-import ForSyDe.Shallow (Signal, fromSignal, mapSY, signal)
-import Models.PIDController (mySystem)
+import ForSyDe.Shallow (Signal, fromSignal, signal)
+import Models.System (incrementedRunningSum)
 import Test.QuickCheck
 
 ---------------------------------------------------------------------------
@@ -22,16 +21,6 @@ instance (Arbitrary a) => Arbitrary (Signal a) where
 -------------------------------------------------------------------------------
 -- Properties to be tested
 -------------------------------------------------------------------------------
-prop_incCheck :: [Int] -> Bool
-prop_incCheck xs =
-  let inputSig = signal xs
-      outputSig = mySystem inputSig
-      outputList = take (length xs) (fromSignal outputSig)
-      expectedList = map (+ 1) xs
-   in outputList == expectedList
-
-prop_equivalence :: Signal Int -> Bool
-prop_equivalence sig =
-  let expected_system = mapSY (+ 1)
-   in take 50 (fromSignal (mySystem sig))
-        == take 50 (fromSignal (expected_system sig))
+prop_incrementedRunningSum :: [Int] -> Bool
+prop_incrementedRunningSum xs =
+  fromSignal (incrementedRunningSum (signal xs)) == scanl (+) 0 (map (+1) xs)

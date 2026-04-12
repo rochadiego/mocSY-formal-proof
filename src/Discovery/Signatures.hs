@@ -2,12 +2,14 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Discovery.Signatures (prop_mapSY, prop_mySY) where
+module Discovery.Signatures (prop_mapSY, prop_mySY, prop_incrementedRunningSum) where
 
 import QuickSpec
 import Test.QuickCheck
-import Models.PIDController (mySystem)
-import ForSyDe.Shallow (Signal(..), fromSignal, signal, mapSY)
+import Data.Proxy (Proxy(..))
+import Models.System (incrementedRunningSum, runningSum)
+import ForSyDe.Shallow (Signal(..), fromSignal, signal)
+import ForSyDe.Shallow.MoC.Synchronous.Lib (mapSY)
 
 -------------------------------------------------------------------------------
 -- Arbitrary Signal
@@ -28,7 +30,7 @@ instance Observe () [Int] (Signal Int) where
 prop_mapSY :: Sig
 prop_mapSY = signature
   [
-    con "mySystem" mySystem,
+    con "runningSum" runningSum,
     con "mapSY"    (mapSY @Int @Int),
     con "plus"     ((+) :: Int -> Int -> Int),
     con "const"    (const :: Int -> Int -> Int),
@@ -43,13 +45,26 @@ prop_mapSY = signature
 prop_mySY :: Sig
 prop_mySY = signature
   [
-    con "mySystem" mySystem,
+    con "incrementedRunningSum" incrementedRunningSum,
     con "mapSY"    (mapSY @Int @Int),
     con "plus"     ((+) :: Int -> Int -> Int),
     con "const"    (const :: Int -> Int -> Int),
     con "."        ((.) :: (Signal Int -> Signal Int)
                          -> (Signal Int -> Signal Int)
                          -> Signal Int -> Signal Int),
+
+    monoType    (Proxy :: Proxy Int),
+    monoTypeObserve (Proxy :: Proxy (Signal Int))
+  ]
+
+prop_incrementedRunningSum :: Sig
+prop_incrementedRunningSum = signature
+  [
+    con "incrementedRunningSum" incrementedRunningSum,
+    con "runningSum"            runningSum,
+    con "mapSY"                 (mapSY @Int @Int),
+    con "plus"                  ((+) :: Int -> Int -> Int),
+    con "const"                 (const :: Int -> Int -> Int),
 
     monoType    (Proxy :: Proxy Int),
     monoTypeObserve (Proxy :: Proxy (Signal Int))
