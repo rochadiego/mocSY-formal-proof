@@ -1,13 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Models.System
-  ( genericSystem
+  ( combinatorialSystem
+  , genericSystem
   , systemModel
   , runningSum
   , incrementedRunningSum
   ) where
 
 import ForSyDe.Shallow (Signal, AbstExt(..), mapSY, scanldSY, zipWithSY, delaySY)
+
+-- | A purely combinatorial system (Mealy architecture).
+-- It has zero internal state, so output length always matches input length.
+combinatorialSystem :: Signal Int -> Signal Int
+combinatorialSystem = mapSY (+1)
 
 -- | Running sum computed by a delay-driven accumulator.
 runningSum :: Signal Int -> Signal Int

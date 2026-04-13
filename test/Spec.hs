@@ -3,7 +3,7 @@ module Main where
 import Test.QuickCheck
 import Verification.Properties
 import Models.System
-import ForSyDe.Shallow (AbstExt(..), Signal, signal, fromSignal)
+import ForSyDe.Shallow (AbstExt(..), Signal, signal)
 import ForSyDe.Shallow.MoC.Synchronous.Lib (zipWithSY)
 
 main :: IO ()
@@ -11,6 +11,9 @@ main = do
     putStrLn "\n>>> Running Generic Synchronous Verification Framework..."
     
     putStrLn "\n[P_SY1] Synchronous Hypothesis (1:1 event mapping)"
+    -- Using combinatorial for pure 1:1 demo
+    quickCheck (prop_PSY1_SynchronousHypothesis (combinatorialSystem :: System Int Int))
+    -- Using stateful to show robustness (+1 length allowed)
     quickCheck (prop_PSY1_SynchronousHypothesis (genericSystem :: System Int Int))
 
     putStrLn "\n[P_SY2] Absent Signals (Logical silence handling)"
@@ -39,7 +42,6 @@ main = do
     quickCheck (prop_PSY9_CausalInterfaces (genericSystem :: System Int Int))
 
     putStrLn "\n[P_SY10] Clock Calculus (Synchronized rates)"
-    -- Here val must be Int so that the result is AbstExt Int
     let downsampler (s :: Signal Int) = zipWithSY (\clk val -> if clk then Prst val else Abst) (signal (cycle [True, False])) s
     quickCheck (prop_PSY10_ClockCalculus (downsampler :: System Int (AbstExt Int)))
 
