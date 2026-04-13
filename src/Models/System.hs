@@ -1,18 +1,29 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Models.System
-  ( runningSum
+  ( genericSystem
+  , systemModel
+  , runningSum
   , incrementedRunningSum
   ) where
 
-import ForSyDe.Shallow (Signal)
-import ForSyDe.Shallow.MoC.Synchronous.Lib (mapSY, scanldSY)
+import ForSyDe.Shallow (Signal, AbstExt(..), mapSY, scanldSY, zipWithSY, delaySY)
 
 -- | Running sum computed by a delay-driven accumulator.
 runningSum :: Signal Int -> Signal Int
 runningSum = scanldSY (+) 0
 
--- | Increment each input before accumulating so the result can be
--- validated against list-level scan semantics.
 incrementedRunningSum :: Signal Int -> Signal Int
 incrementedRunningSum = runningSum . mapSY (+1)
+
+-- | A representative complex system handling AbstExt and Preemption via reset.
+-- If reset is True, internal state should theoretically be bypassed (emulated here).
+-- This acts as our generic "Model".
+systemModel :: Signal Bool -> Signal (AbstExt Int) -> Signal (AbstExt Int)
+systemModel reset input = zipWithSY process reset input
+  where
+    process r val = if r then Abst else val
+
+-- | A generic combinator simulating a blackbox system that respects synchrony
+genericSystem :: Signal Int -> Signal Int
+genericSystem = mapSY (+1) . scanldSY (+) 0 . delaySY 0
