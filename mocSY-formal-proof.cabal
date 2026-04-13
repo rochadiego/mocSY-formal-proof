@@ -55,3 +55,4 @@ test-suite properties-validation
       base
     , mocSY-formal-proof
     , QuickCheck
+    , forsyde-shallow

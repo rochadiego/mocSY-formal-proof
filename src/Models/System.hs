@@ -24,6 +24,7 @@ systemModel reset input = zipWithSY process reset input
   where
     process r val = if r then Abst else val
 
--- | A generic combinator simulating a blackbox system that respects synchrony
+-- | A strictly synchronous combinator (length-preserving).
+-- It represents a system where output length matches input length exactly.
 genericSystem :: Signal Int -> Signal Int
-genericSystem = mapSY (+1) . scanldSY (+) 0 . delaySY 0
+genericSystem = mapSY (+1) . scanldSY (+) 0
