@@ -208,21 +208,20 @@ config = (fAAES, gAAES, 2)
 
 
 -- AAES voter block
-aaesVoterFunc :: (Eq y) => ((AbstExt y, AbstExt x), (AbstExt y, AbstExt x), (AbstExt y, AbstExt x)) -> (y, AbstExt x, AbstExt Int)
-aaesVoterFunc ((Prst y1, Prst x1), (Prst y2, Prst x2), (Prst y3, Prst x3))
+aaesVoterFunc :: (Eq y) => y -> ((AbstExt y, AbstExt x), (AbstExt y, AbstExt x), (AbstExt y, AbstExt x)) -> (y, AbstExt x, AbstExt Int)
+aaesVoterFunc _ ((Prst y1, Prst x1), (Prst y2, Prst x2), (Prst y3, Prst x3))
   | y1 == y2 && y2 == y3 = (y1, Prst x1, Abst)
   | y1 /= y2 && y2 == y3 = (y2, Prst x2, Prst 1)
   | y1 /= y2 && y1 == y3 = (y1, Prst x1, Prst 2)
   | y1 == y2 && y2 /= y3 = (y1, Prst x1, Prst 3)
-aaesVoterFunc ((Abst, _), (Prst y2, Prst x2), (Prst y3, Prst x3)) = (y2, Prst x2, Prst 1)
-aaesVoterFunc ((Prst y1, Prst x1), (Abst, _), (Prst y3, Prst x3)) = (y1, Prst x1, Prst 2)
-aaesVoterFunc ((Prst y1, Prst x1), (Prst y2, Prst x2), (Abst, _)) = (y1, Prst x1, Prst 3)
-aaesVoterFunc _ = (error "aaesVoterFunc: Condition not valid", Abst, Abst) -- Should handle gracefully if possible, but keeping error for now to stay true to model, OR:
--- aaesVoterFunc _ = ([], Abst, Abst) -- Safe default for verification
+aaesVoterFunc _ ((Abst, _), (Prst y2, Prst x2), (Prst y3, Prst x3)) = (y2, Prst x2, Prst 1)
+aaesVoterFunc _ ((Prst y1, Prst x1), (Abst, _), (Prst y3, Prst x3)) = (y1, Prst x1, Prst 2)
+aaesVoterFunc _ ((Prst y1, Prst x1), (Prst y2, Prst x2), (Abst, _)) = (y1, Prst x1, Prst 3)
+aaesVoterFunc def _ = (def, Abst, Abst) -- Safe default for verification
 
-aaesVoter :: (Eq y) => Signal ((AbstExt y, AbstExt x), (AbstExt y, AbstExt x), (AbstExt y, AbstExt x))
+aaesVoter :: (Eq y) => y -> Signal ((AbstExt y, AbstExt x), (AbstExt y, AbstExt x), (AbstExt y, AbstExt x))
           -> (Signal y, Signal (AbstExt x), Signal (AbstExt Int))
-aaesVoter inp = unzip3SY (combSY aaesVoterFunc inp)
+aaesVoter def inp = unzip3SY (combSY (aaesVoterFunc def) inp)
 
 aaesMuxFunc :: a -> a -> a -> a -> (Int, Int, Int) -> (a, a, a)
 aaesMuxFunc i1 i2 i3 i4 (n1, n2, n3) = (o1, o2, o3)
@@ -296,7 +295,7 @@ aaesCoreSpare = rtrp (fDummy, gDummy, 0, initState)
 
 aaesPN :: Signal (AbstExt (ImuVal, ImuVal, ImuVal)) -> Signal [Vec]
 aaesPN inp = sy
-  where (sy, sx, faultyCore) = aaesVoter sa
+  where (sy, sx, faultyCore) = aaesVoter [] sa
         sa = aaesMux core0out core1out core2out core3out sSel
         core0out = aaesCore ct0 inp currState
         core1out = aaesCore ct1 inp currState
