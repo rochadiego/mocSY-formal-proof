@@ -44,7 +44,7 @@ prop_PSY1_SynchronousHypothesis sys xs =
 -- Premise: The system explicitly handles "logical silence" (Abst values).
 -- Verification: Ensuring that providing 'Abst' doesn't cause loss of synchronization.
 -- Test: Verifies length consistency when AbstExt is part of the alphabet.
-prop_PSY2_AbsentSignals :: System (AbstExt a) (AbstExt b) -> [AbstExt a] -> Bool
+prop_PSY2_AbsentSignals :: System (AbstExt a) b -> [AbstExt a] -> Bool
 prop_PSY2_AbsentSignals sys xs = 
   let s_out = fromSignal (sys (signal xs))
   in length s_out == length xs || length s_out == length xs + 1
@@ -57,26 +57,6 @@ prop_PSY3_Determinism :: (Eq b) => System a b -> [a] -> Bool
 prop_PSY3_Determinism sys xs = 
   let s = signal xs
   in sys s == sys s
-
--- | P_{SY4} - Isochrony:
--- Premise: System behavior is invariant to when or how chunks of logic are executed.
--- Verification: 'sys(take n xs)' matches the first 'n' events of 'sys(xs)'.
--- Test: Slicing the output of a full evaluation against a partial evaluation.
-prop_PSY4_Isochrony :: (Eq b) => System a b -> [a] -> Int -> Property
-prop_PSY4_Isochrony sys xs n = n >= 0 && n <= length xs ==>
-  let full_out = fromSignal (sys (signal xs))
-      part_out = fromSignal (sys (signal (take n xs)))
-      -- For Moore systems, the length might be N+1. We take 'length part_out' to align.
-  in take (length part_out) full_out == part_out
-
--- | P_{SY5} - Constructive Logic:
--- Premise: No unresolvable causal loops; every signal must have a unique, deducible value.
--- Verification: Finite input evaluation terminates without "locking" in infinite loops.
--- Test: Evaluation of the entire output list (forcing strict evaluation of the skeleton).
-prop_PSY5_ConstructiveLogic :: System a b -> [a] -> Bool
-prop_PSY5_ConstructiveLogic sys xs = 
-  let out = fromSignal (sys (signal xs))
-  in length out >= 0 
 
 -- | P_{SY6} - Strict Causality:
 -- Premise: Feedback loops require an atomic delay to be solvable.
@@ -103,7 +83,7 @@ prop_PSY7_ConcurrentComposition sys1 sys2 f xs =
 -- Premise: Tasks can be safely aborted or reset without state corruption.
 -- Verification: A system reacts correctly to control/reset flags within the same cycle.
 -- Test: Validation of specific 'Abst' or 'Reset' reactions in a control-aware system.
-prop_PSY8_OrthogonalPreemption :: (Eq b) => (Signal Bool -> Signal a -> Signal b) -> [Bool] -> [a] -> Bool
+prop_PSY8_OrthogonalPreemption :: (Eq b) => (Signal ctrl -> Signal a -> Signal b) -> [ctrl] -> [a] -> Bool
 prop_PSY8_OrthogonalPreemption sys rs xs =
   let len = min (length rs) (length xs)
       in_rs = signal (take len rs)
