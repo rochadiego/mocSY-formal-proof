@@ -6,6 +6,8 @@ module Verification.Properties where
 import ForSyDe.Shallow (Signal, fromSignal, signal, AbstExt(..))
 import ForSyDe.Shallow.MoC.Synchronous.Lib (mapSY, zipWithSY)
 import Test.QuickCheck
+import Quaternion (Quaternion, fromListQ)
+import Models.System (Vec, ImuVal)
 
 ---------------------------------------------------------------------------
 -- Types and Instances
@@ -13,6 +15,9 @@ import Test.QuickCheck
 
 -- | Type alias for a generic Single-Input Single-Output Synchronous System.
 type System a b = Signal a -> Signal b
+
+instance (Arbitrary a, Num a) => Arbitrary (Quaternion a) where
+  arbitrary = fromListQ <$> vectorOf 4 arbitrary
 
 instance (Arbitrary a) => Arbitrary (Signal a) where
   arbitrary = fmap signal (listOf arbitrary)
@@ -29,7 +34,7 @@ instance (Arbitrary a) => Arbitrary (AbstExt a) where
 -- Premise: Internal computations take zero logical time. Reaction is instantaneous.
 -- Verification: Validates that for every 'N' input events, there are at least 'N' output events.
 -- Test: Checks length equality (or N+1 for Moore systems with initial state).
-prop_PSY1_SynchronousHypothesis :: (Eq b) => System a b -> [a] -> Bool
+prop_PSY1_SynchronousHypothesis :: System a b -> [a] -> Bool
 prop_PSY1_SynchronousHypothesis sys xs = 
   let s_in = signal xs
       s_out = fromSignal (sys s_in)
@@ -39,7 +44,7 @@ prop_PSY1_SynchronousHypothesis sys xs =
 -- Premise: The system explicitly handles "logical silence" (Abst values).
 -- Verification: Ensuring that providing 'Abst' doesn't cause loss of synchronization.
 -- Test: Verifies length consistency when AbstExt is part of the alphabet.
-prop_PSY2_AbsentSignals :: (Eq b) => System (AbstExt a) (AbstExt b) -> [AbstExt a] -> Bool
+prop_PSY2_AbsentSignals :: System (AbstExt a) (AbstExt b) -> [AbstExt a] -> Bool
 prop_PSY2_AbsentSignals sys xs = 
   let s_out = fromSignal (sys (signal xs))
   in length s_out == length xs || length s_out == length xs + 1
@@ -68,7 +73,7 @@ prop_PSY4_Isochrony sys xs n = n >= 0 && n <= length xs ==>
 -- Premise: No unresolvable causal loops; every signal must have a unique, deducible value.
 -- Verification: Finite input evaluation terminates without "locking" in infinite loops.
 -- Test: Evaluation of the entire output list (forcing strict evaluation of the skeleton).
-prop_PSY5_ConstructiveLogic :: (Eq b) => System a b -> [a] -> Bool
+prop_PSY5_ConstructiveLogic :: System a b -> [a] -> Bool
 prop_PSY5_ConstructiveLogic sys xs = 
   let out = fromSignal (sys (signal xs))
   in length out >= 0 
@@ -77,7 +82,7 @@ prop_PSY5_ConstructiveLogic sys xs =
 -- Premise: Feedback loops require an atomic delay to be solvable.
 -- Verification: A system embedded in a feedback loop remains productive.
 -- Test: Ensuring the feedback-driven system produces outputs for every input.
-prop_PSY6_StrictCausality :: (Eq b) => System a b -> [a] -> Bool
+prop_PSY6_StrictCausality :: System a b -> [a] -> Bool
 prop_PSY6_StrictCausality sys xs =
   let s_out = fromSignal (sys (signal xs))
   in length s_out == length xs || length s_out == length xs + 1
@@ -120,7 +125,7 @@ prop_PSY9_CausalInterfaces sys xs extras =
 -- Premise: Predictable relationship between signals of different rates.
 -- Verification: Sub-sampled signals maintain logical alignment with the master clock.
 -- Test: Down-sampling factor validation.
-prop_PSY10_ClockCalculus :: (Eq b) => (Signal a -> Signal b) -> [a] -> Property
+prop_PSY10_ClockCalculus :: (Signal a -> Signal b) -> [a] -> Property
 prop_PSY10_ClockCalculus decimation_sys xs = length xs >= 0 ==>
   let s_out = fromSignal (decimation_sys (signal xs))
   in length s_out <= length xs || length s_out <= length xs + 1

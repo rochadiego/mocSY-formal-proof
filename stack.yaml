@@ -7,6 +7,10 @@ extra-deps:
 # ForSyDe
 - forsyde-shallow-3.5.0.0
 
+# Quaternion
+- git: https://github.com/ricardobonna/haskell-quaternion
+  commit: 42ea163e1997b646221e1d292c0b1e461903ab69
+
 # QuickSpec
 - git: https://github.com/nick8325/quickspec.git
   commit: dc011cd737f98b8a67f6051560d9fce553385905

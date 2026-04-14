@@ -3,20 +3,18 @@
 module Main where
 
 import ForSyDe.Shallow (signal, fromSignal)
-import Models.System (incrementedRunningSum)
+import Models.System (aaesPN, testInp)
 
 main :: IO ()
 main = do
     putStrLn "==========================================="
-    putStrLn "   ForSyDe-Shallow: Simulation Example     "
+    putStrLn "   ForSyDe-Shallow: AAES PN Simulation     "
     putStrLn "==========================================="
 
-    let inputValues = [1, 2, 3, 4, 5, 5, 5, 4, 3, 2] :: [Int]
-    let inputSignal = signal inputValues
+    let outputSignal = aaesPN testInp
 
-    let outputSignal = incrementedRunningSum inputSignal
-
-    putStrLn $ "Input: " ++ show inputValues
+    putStrLn $ "Input: Simulation of 10 points with constant IMU data"
     putStrLn "-------------------------------------------"
-    putStrLn $ "Output: " ++ show (fromSignal outputSignal)
+    putStrLn $ "Output (euler, a_out, v_out, p_out, nzBody): " 
+    putStrLn $ show (fromSignal outputSignal)
     putStrLn "==========================================="

@@ -12,6 +12,17 @@ packages:
   original:
     hackage: forsyde-shallow-3.5.0.0
 - completed:
+    commit: 42ea163e1997b646221e1d292c0b1e461903ab69
+    git: https://github.com/ricardobonna/haskell-quaternion
+    name: haskell-quaternion
+    pantry-tree:
+      sha256: 261d1cbbc968a39839324547df8a9a1eb64be45d92106ce7b5a26d58b8630186
+      size: 367
+    version: 0.1.0.0
+  original:
+    commit: 42ea163e1997b646221e1d292c0b1e461903ab69
+    git: https://github.com/ricardobonna/haskell-quaternion
+- completed:
     commit: dc011cd737f98b8a67f6051560d9fce553385905
     git: https://github.com/nick8325/quickspec.git
     name: quickspec

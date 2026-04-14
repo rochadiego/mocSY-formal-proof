@@ -24,6 +24,7 @@ library
     , quickspec
     , forsyde-shallow           >= 3.5
     , QuickCheck                >= 2.14
+    , haskell-quaternion
 
 executable system-simulation
   import: common-options
@@ -34,6 +35,7 @@ executable system-simulation
       base
     , mocSY-formal-proof
     , forsyde-shallow
+    , haskell-quaternion
 
 executable properties-discovery
   import: common-options
@@ -44,6 +46,7 @@ executable properties-discovery
       base
     , mocSY-formal-proof
     , quickspec
+    , haskell-quaternion
 
 test-suite properties-validation
   import: common-options
@@ -56,3 +59,4 @@ test-suite properties-validation
     , mocSY-formal-proof
     , QuickCheck
     , forsyde-shallow
+    , haskell-quaternion
