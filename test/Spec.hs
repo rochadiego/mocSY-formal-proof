@@ -35,6 +35,6 @@ main = do
     quickCheck (prop_PSY9_CausalInterfaces (aaesPN :: System (AbstExt (ImuVal, ImuVal, ImuVal)) [Vec]))
 
     putStrLn "\n[P_SY10] Clock Calculus (Time alignment)"
-    quickCheck (prop_PSY10_ClockCalculus (aaesPN :: System (AbstExt (ImuVal, ImuVal, ImuVal)) [Vec]))
+    quickCheck (prop_PSY10_ClockCalculus 1 (aaesPN :: System (AbstExt (ImuVal, ImuVal, ImuVal)) [Vec]))
 
     putStrLn "\n>>> All properties verified against the AAES model."
