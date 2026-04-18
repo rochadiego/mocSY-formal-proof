@@ -15,10 +15,6 @@
 --   * Reset orthogonality
 --   * Clock refinement
 --
--- Notes:
---   1. Universal laws are separated from architecture-specific laws.
---   2. Properties are observational and executable with QuickCheck.
---   3. Numbering of original properties preserved.
 -- ============================================================================
 
 module Verification.Properties where
@@ -75,7 +71,7 @@ everyK k xs =
 -- P_SY1 - Synchronous Hypothesis
 --
 -- A synchronous process consumes one token per logical instant and produces
--- one token per logical instant. Hence, temporal cardinality is preserved.
+-- one token per logical instant.
 -- ============================================================================
 
 prop_PSY1_SynchronousHypothesis :: System a b -> [a] -> Property
@@ -179,7 +175,7 @@ prop_PSY7_ConcurrentComposition sys1 sys2 comb xs =
                 && length oz == length xs
 
 -- ============================================================================
--- P_SY8 - Orthogonal Preemption
+-- P_SY8 - Orthogonal Preemption - not validated yet
 --
 -- A reset event instantaneously reinitializes local state without corrupting
 -- global time progression. Post-reset behavior equals fresh execution.
@@ -223,7 +219,7 @@ prop_PSY8_OrthogonalPreemption sys xsBefore xsAfter =
 -- P_SY9 - Prefix Causality
 --
 -- Extending the future of an input stream must not alter already produced
--- outputs. This is the canonical observational causality law.
+-- outputs.
 -- ============================================================================
 
 prop_PSY9_CausalInterfaces ::
@@ -247,8 +243,6 @@ prop_PSY9_CausalInterfaces sys xs future =
 -- Specialized law for rate-changing processes:
 -- a k-decimator must emit ceil(n / k) tokens for n inputs.
 --
--- This property is NOT universal; it applies only to systems intended as
--- downsamplers by factor k.
 -- ============================================================================
 
 prop_PSY10_ClockCalculus ::
