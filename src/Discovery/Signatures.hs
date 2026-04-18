@@ -33,6 +33,9 @@ instance (Ord a) => Ord (AbstExt a) where
 instance (Ord a) => Ord (Quaternion a) where
   compare q1 q2 = compare (quat2list q1) (quat2list q2)
 
+instance (Ord a) => Ord (Signal a) where
+  compare s1 s2 = compare (take 10 (fromSignal s1)) (take 10 (fromSignal s2))
+
 -------------------------------------------------------------------------------
 -- Observe instances
 -------------------------------------------------------------------------------
@@ -47,6 +50,14 @@ prop_aaesPN = signature
   [
     con "aaesPN" aaesPN,
     
+    monoType (Proxy :: Proxy (Signal (AbstExt (ImuVal, ImuVal, ImuVal)))),
     monoType (Proxy :: Proxy (AbstExt (ImuVal, ImuVal, ImuVal))),
-    monoTypeObserve (Proxy :: Proxy (Signal [Vec]))
+    monoType (Proxy :: Proxy (ImuVal, ImuVal, ImuVal)),
+    monoType (Proxy :: Proxy ImuVal),
+    monoType (Proxy :: Proxy Vec),
+    monoType (Proxy :: Proxy Float),
+    
+    monoTypeObserve (Proxy :: Proxy (Signal [Vec])),
+    
+    vars ["s"] (Proxy :: Proxy (Signal (AbstExt (ImuVal, ImuVal, ImuVal))))
   ]
