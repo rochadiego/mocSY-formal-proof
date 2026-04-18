@@ -64,8 +64,12 @@ prefixEq n xs ys = take n xs == take n ys
 sameLength :: [a] -> [b] -> Bool
 sameLength xs ys = length xs == length ys
 
-ceilDiv :: Int -> Int -> Int
-ceilDiv n k = (n + k - 1) `div` k
+everyK :: Int -> [a] -> [a]
+everyK k xs =
+  map snd $
+    filter
+      (\(i, _) -> i `mod` k == 0)
+      (zip [0 ..] xs)
 
 -- ============================================================================
 -- P_SY1 - Synchronous Hypothesis
@@ -89,34 +93,36 @@ prop_PSY1_SynchronousHypothesis sys xs =
 -- ============================================================================
 
 prop_PSY2_AbsentSignals ::
+  (Eq b) =>
   System (AbstExt a) b ->
   [AbstExt a] ->
   Property
 prop_PSY2_AbsentSignals sys xs =
-  let allAbst = replicate (length xs) Abst
-      out1 = fromSignal (sys (signal xs))
-      out2 = fromSignal (sys (signal allAbst))
-   in out1 `seq`
-        out2 `seq`
+  let o1 = fromSignal (sys (signal xs))
+      allAbst = replicate (length xs) Abst
+      o2 = fromSignal (sys (signal allAbst))
+   in o1 `seq`
+        o2 `seq`
           property $
-            sameLength xs out1
-              && sameLength xs out2
+            length o1 == length xs
+              && length o2 == length xs
 
 -- ============================================================================
 -- P_SY3 - Determinism / Referential Transparency
---
+-- Pure Haskell functions are deterministic by nature.
 -- Extensionally equal inputs must yield equal outputs.
 -- ============================================================================
 
 prop_PSY3_Determinism ::
-  (Eq b) =>
+  (Eq a, Eq b) =>
   System a b ->
   [a] ->
+  [a] ->
   Property
-prop_PSY3_Determinism sys xs =
-  property $
+prop_PSY3_Determinism sys xs ys =
+  xs == ys ==>
     fromSignal (sys (signal xs))
-      == fromSignal (sys (signal xs))
+      == fromSignal (sys (signal ys))
 
 -- ============================================================================
 -- P_SY6 - Strict Causality
@@ -154,23 +160,23 @@ prop_PSY6_StrictCausality sys x xs ys =
 -- ============================================================================
 
 prop_PSY7_ConcurrentComposition ::
+  (Eq d) =>
   System a b ->
   System a c ->
   (b -> c -> d) ->
   [a] ->
   Property
-prop_PSY7_ConcurrentComposition sys1 sys2 f xs =
+prop_PSY7_ConcurrentComposition sys1 sys2 comb xs =
   let s = signal xs
       o1 = fromSignal (sys1 s)
       o2 = fromSignal (sys2 s)
-      oz = fromSignal (zipWithSY f (sys1 s) (sys2 s))
+      oz = fromSignal (zipWithSY comb (sys1 s) (sys2 s))
    in o1 `seq`
         o2 `seq`
           oz `seq`
             property $
-              sameLength xs o1
-                && sameLength xs o2
-                && sameLength xs oz
+              oz == zipWith comb o1 o2
+                && length oz == length xs
 
 -- ============================================================================
 -- P_SY8 - Orthogonal Preemption
@@ -246,13 +252,15 @@ prop_PSY9_CausalInterfaces sys xs future =
 -- ============================================================================
 
 prop_PSY10_ClockCalculus ::
+  (Eq a) =>
   Int ->
-  System a b ->
+  System a a ->
   [a] ->
   Property
 prop_PSY10_ClockCalculus k sys xs =
   k > 0 ==>
     let out = fromSignal (sys (signal xs))
+        expected = everyK k xs
      in out `seq`
           property $
-            length out == ceilDiv (length xs) k
+            out == expected
