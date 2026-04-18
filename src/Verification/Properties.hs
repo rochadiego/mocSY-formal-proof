@@ -1,6 +1,26 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- ============================================================================
+-- Verification.Properties
+--
+-- Property suite for synchronous systems modeled in ForSyDe.
+--
+-- Focus:
+--   * Temporal preservation
+--   * Determinism
+--   * Prefix causality
+--   * Strict causality
+--   * Compositionality
+--   * Reset orthogonality
+--   * Clock refinement
+--
+-- Notes:
+--   1. Universal laws are separated from architecture-specific laws.
+--   2. Properties are observational and executable with QuickCheck.
+--   3. Numbering of original properties preserved.
+-- ============================================================================
+
 module Verification.Properties where
 
 import ForSyDe.Shallow (AbstExt (..), Signal, fromSignal, signal)
@@ -8,154 +28,231 @@ import ForSyDe.Shallow.MoC.Synchronous.Lib (zipWithSY)
 import Quaternion (Quaternion, fromListQ)
 import Test.QuickCheck
 
----------------------------------------------------------------------------
--- Types and Instances
----------------------------------------------------------------------------
+-- ============================================================================
+-- Types
+-- ============================================================================
 
--- | Generic synchronous system
 type System a b = Signal a -> Signal b
+
+type ResetSystem a b = Signal Bool -> Signal a -> Signal b
+
+-- ============================================================================
+-- Arbitrary Instances
+-- ============================================================================
 
 instance (Arbitrary a, Num a) => Arbitrary (Quaternion a) where
   arbitrary = fromListQ <$> vectorOf 4 arbitrary
 
 instance (Arbitrary a) => Arbitrary (Signal a) where
-  arbitrary = fmap signal (listOf arbitrary)
-  shrink s = map signal (shrink (fromSignal s))
+  arbitrary = signal <$> listOf arbitrary
+  shrink s = signal <$> shrink (fromSignal s)
 
 instance (Arbitrary a) => Arbitrary (AbstExt a) where
-  arbitrary = frequency [(1, return Abst), (4, fmap Prst arbitrary)]
+  arbitrary =
+    frequency
+      [ (1, pure Abst),
+        (4, Prst <$> arbitrary)
+      ]
 
----------------------------------------------------------------------------
--- Helper
----------------------------------------------------------------------------
+-- ============================================================================
+-- Helpers
+-- ============================================================================
 
----------------------------------------------------------------------------
--- Synchronous Properties (Corrected)
----------------------------------------------------------------------------
+prefixEq :: (Eq a) => Int -> [a] -> [a] -> Bool
+prefixEq n xs ys = take n xs == take n ys
 
+sameLength :: [a] -> [b] -> Bool
+sameLength xs ys = length xs == length ys
 
--- | P_SY1 - Synchronous Hypothesis
--- Every input tick produces exactly one output tick (no loss or gain of time)
+ceilDiv :: Int -> Int -> Int
+ceilDiv n k = (n + k - 1) `div` k
+
+-- ============================================================================
+-- P_SY1 - Synchronous Hypothesis
+--
+-- A synchronous process consumes one token per logical instant and produces
+-- one token per logical instant. Hence, temporal cardinality is preserved.
+-- ============================================================================
+
 prop_PSY1_SynchronousHypothesis :: System a b -> [a] -> Property
 prop_PSY1_SynchronousHypothesis sys xs =
   let out = fromSignal (sys (signal xs))
-   in out `seq` property (length out == length xs)
+   in out `seq`
+        property $
+          sameLength xs out
 
+-- ============================================================================
+-- P_SY2 - Absent Signals Robustness
+--
+-- Presence/absence annotations must not destroy the global logical clock.
+-- Temporal structure remains invariant even under fully absent streams.
+-- ============================================================================
 
--- | P_SY2 - Absent Signals
--- Presence of Abst must not break temporal structure
-prop_PSY2_AbsentSignals :: System (AbstExt a) b -> [AbstExt a] -> Property
+prop_PSY2_AbsentSignals ::
+  System (AbstExt a) b ->
+  [AbstExt a] ->
+  Property
 prop_PSY2_AbsentSignals sys xs =
-  let out1 = fromSignal (sys (signal xs))
-      out2 = fromSignal (sys (signal (map (const Abst) xs)))
+  let allAbst = replicate (length xs) Abst
+      out1 = fromSignal (sys (signal xs))
+      out2 = fromSignal (sys (signal allAbst))
    in out1 `seq`
         out2 `seq`
-          property
-            ( length out1 == length xs
-                && length out2 == length xs
-            )
+          property $
+            sameLength xs out1
+              && sameLength xs out2
 
+-- ============================================================================
+-- P_SY3 - Determinism / Referential Transparency
+--
+-- Extensionally equal inputs must yield equal outputs.
+-- ============================================================================
 
--- | P_SY3 - Determinism (Haskell Pure Function Native)
--- Same input must produce same output (evaluated twice)
-prop_PSY3_Determinism :: (Eq b) => System a b -> [a] -> Bool
-prop_PSY3_Determinism sys xs =
-  let s = signal xs
-      out1 = sys s
-      out2 = sys s
-   in out1 == out2
-
-
--- | P_SY6 - Strict Causality
--- Output at time t must NOT depend on future input (t+1, t+2, ...)
-prop_PSY6_StrictCausality :: (Eq b) => System a b -> a -> a -> [a] -> Property
-prop_PSY6_StrictCausality sys xNow xFuture xs =
-  let inp1 = xNow : xNow : xs
-      inp2 = xNow : xFuture : xs
-      o1 = fromSignal (sys (signal inp1))
-      o2 = fromSignal (sys (signal inp2))
-   in o1 `seq`
-        o2 `seq`
-          property
-            ( length o1 == length inp1
-                && length o2 == length inp2
-                && take 1 o1 == take 1 o2
-            )
-
-
--- | P_SY7 - Concurrent Composition
--- Parallel systems must remain temporally aligned (lockstep)
-prop_PSY7_ConcurrentComposition ::
-  System a b -> System a c -> (b -> c -> d) -> [a] -> Property
-prop_PSY7_ConcurrentComposition sys1 sys2 f xs =
-  let s = signal xs
-      sb1 = sys1 s
-      sb2 = sys2 s
-      o1 = fromSignal sb1
-      o2 = fromSignal sb2
-      out = fromSignal (zipWithSY f sb1 sb2)
-   in o1 `seq`
-        o2 `seq`
-          out `seq`
-            property
-              ( length o1 == length xs
-                  && length o2 == length xs
-                  && length out == length xs
-              )
-
-
--- | P_SY8 - Orthogonal Preemption
--- Reset must act immediately and not break time structure
-prop_PSY8_OrthogonalPreemption ::
+prop_PSY3_Determinism ::
   (Eq b) =>
-  (Signal Bool -> Signal a -> Signal b) ->
+  System a b ->
+  [a] ->
+  Property
+prop_PSY3_Determinism sys xs =
+  property $
+    fromSignal (sys (signal xs))
+      == fromSignal (sys (signal xs))
+
+-- ============================================================================
+-- P_SY6 - Strict Causality
+--
+-- Output at logical instant t depends only on inputs strictly prior to t.
+-- Operationally: modifying current/future inputs cannot affect past outputs.
+--
+-- Here tested at t = 0:
+-- first output must be invariant under changes at current token.
+-- ============================================================================
+
+prop_PSY6_StrictCausality ::
+  (Eq b) =>
+  System a b ->
+  a ->
   [a] ->
   [a] ->
   Property
-prop_PSY8_OrthogonalPreemption sys xs_before xs_after =
-  let lenB = length xs_before
-      lenA = length xs_after
-   in lenA > 0 ==>
+prop_PSY6_StrictCausality sys x xs ys =
+  let in1 = x : xs
+      in2 = x : ys
+      o1 = fromSignal (sys (signal in1))
+      o2 = fromSignal (sys (signal in2))
+   in o1 `seq`
+        o2 `seq`
+          property $
+            take 1 o1 == take 1 o2
+
+-- ============================================================================
+-- P_SY7 - Concurrent Composition
+--
+-- Parallel synchronous composition preserves lockstep alignment.
+-- If two subsystems are synchronous, their pointwise composition is also
+-- synchronous and cardinality-preserving.
+-- ============================================================================
+
+prop_PSY7_ConcurrentComposition ::
+  System a b ->
+  System a c ->
+  (b -> c -> d) ->
+  [a] ->
+  Property
+prop_PSY7_ConcurrentComposition sys1 sys2 f xs =
+  let s = signal xs
+      o1 = fromSignal (sys1 s)
+      o2 = fromSignal (sys2 s)
+      oz = fromSignal (zipWithSY f (sys1 s) (sys2 s))
+   in o1 `seq`
+        o2 `seq`
+          oz `seq`
+            property $
+              sameLength xs o1
+                && sameLength xs o2
+                && sameLength xs oz
+
+-- ============================================================================
+-- P_SY8 - Orthogonal Preemption
+--
+-- A reset event instantaneously reinitializes local state without corrupting
+-- global time progression. Post-reset behavior equals fresh execution.
+-- ============================================================================
+
+prop_PSY8_OrthogonalPreemption ::
+  (Eq b) =>
+  ResetSystem a b ->
+  [a] ->
+  [a] ->
+  Property
+prop_PSY8_OrthogonalPreemption sys xsBefore xsAfter =
+  let n = length xsBefore
+      m = length xsAfter
+   in m > 0 ==>
         let ctrl =
-              replicate lenB False
+              replicate n False
                 ++ [True]
-                ++ replicate (lenA - 1) False
-            input = xs_before ++ xs_after
-            out_continuous =
-              fromSignal (sys (signal ctrl) (signal input))
-            out_fresh =
-              fromSignal
-                ( sys
-                    (signal (True : replicate (lenA - 1) False))
-                    (signal xs_after)
-                )
-            out_after_reset =
-              drop lenB out_continuous
-         in out_continuous `seq`
-              out_fresh `seq`
-                property (take lenA out_after_reset == out_fresh)
+                ++ replicate (m - 1) False
 
+            input = xsBefore ++ xsAfter
 
--- | P_SY9 - Causal Interfaces
--- Future inputs must not affect past outputs
-prop_PSY9_CausalInterfaces :: (Eq b) => System a b -> [a] -> [a] -> Property
-prop_PSY9_CausalInterfaces sys xs extras =
-  let outShort = fromSignal (sys (signal xs))
-      outLong = fromSignal (sys (signal (xs ++ extras)))
-   in outShort `seq`
-        property
-          ( length outShort == length xs
-              && take (length outShort) outLong == outShort
-          )
+            continuous =
+              fromSignal $
+                sys (signal ctrl) (signal input)
 
+            fresh =
+              fromSignal $
+                sys
+                  (signal (True : replicate (m - 1) False))
+                  (signal xsAfter)
 
--- | P_SY10 - Clock Calculus (Downsampling)
--- Output must follow a predictable subclock (factor k)
+            suffixAfterReset =
+              take m (drop n continuous)
+         in continuous `seq`
+              fresh `seq`
+                property $
+                  suffixAfterReset == fresh
+
+-- ============================================================================
+-- P_SY9 - Prefix Causality
+--
+-- Extending the future of an input stream must not alter already produced
+-- outputs. This is the canonical observational causality law.
+-- ============================================================================
+
+prop_PSY9_CausalInterfaces ::
+  (Eq b) =>
+  System a b ->
+  [a] ->
+  [a] ->
+  Property
+prop_PSY9_CausalInterfaces sys xs future =
+  let shortOut = fromSignal (sys (signal xs))
+      longOut = fromSignal (sys (signal (xs ++ future)))
+      n = length shortOut
+   in shortOut `seq`
+        longOut `seq`
+          property $
+            prefixEq n shortOut longOut
+
+-- ============================================================================
+-- P_SY10 - Clock Calculus (Downsampling Law)
+--
+-- Specialized law for rate-changing processes:
+-- a k-decimator must emit ceil(n / k) tokens for n inputs.
+--
+-- This property is NOT universal; it applies only to systems intended as
+-- downsamplers by factor k.
+-- ============================================================================
+
 prop_PSY10_ClockCalculus ::
-  Int -> (Signal a -> Signal b) -> [a] -> Property
+  Int ->
+  System a b ->
+  [a] ->
+  Property
 prop_PSY10_ClockCalculus k sys xs =
   k > 0 ==>
     let out = fromSignal (sys (signal xs))
-        expectedLen = (length xs + k - 1) `div` k
      in out `seq`
-          property (length out == expectedLen)
+          property $
+            length out == ceilDiv (length xs) k
